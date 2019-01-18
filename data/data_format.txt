@@ -1,0 +1,11 @@
+Format of a three-dimensional event matrix c
+====================================================
+
+c.shape = (N_events, 4)
+c[i,:] = [t_i,x_i,y_i,p_i]
+
+All numbers are floating point:
+t_i - event timestamp in seconds
+x_i - event horizontal pixel coordinate
+y_i - event vertical pixel coordinate
+p_i - event polarity; 0 (negative) or 1 (positive)
