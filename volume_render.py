@@ -30,6 +30,8 @@ class VolumeRender(HasTraits):
 
     def __init__(self):
         super(VolumeRender, self).__init__()
+        # self.scatter_scene.background = (0.9411764705882353, 0.9411764705882353, 0.8509803921568627)
+        # self.volume_scene.background = (0.9411764705882353, 0.9411764705882353, 0.8509803921568627)
 
     panel = Instance(Panel, ())
     scatter_scene = Instance(MlabSceneModel, ())
@@ -48,7 +50,8 @@ class VolumeRender(HasTraits):
                 return
 
             self.loadData(dialog.path)
-            self.generatePlotData()
+            self.generatePlotVolumeData()
+            self.generatePlotScatterData()
             self.reset_plane()
 
     @on_trait_change('reset_plane_butt')
@@ -62,6 +65,10 @@ class VolumeRender(HasTraits):
         self.volume_scene.camera.compute_view_plane_normal()
         self.volume_scene.render()
 
+    @on_trait_change('z_reduction')
+    def z_reduction_changed(self):
+        self.generatePlotVolumeData()
+
     def loadData(self, path):
         data = np.load(path)
 
@@ -74,7 +81,15 @@ class VolumeRender(HasTraits):
             self.s[np.where(self.s == 0)] = -1
         self.dz = np.unique(self.z)[1:] - np.unique(self.z)[:-1]
 
-    def generatePlotData(self):
+    def generatePlotScatterData(self):
+        mlab.clf(figure=self.scatter_scene.mayavi_scene)
+        self.points = mlab.points3d(self.x, self.y, self.z * len(self.z) / self.z_reduction, mode="point", figure=self.scatter_scene.mayavi_scene, colormap="seismic", vmin=np.min(self.s), vmax=np.max(self.s))
+
+    def updateScatterData(self):
+        # self.points.update_traits
+        pass
+
+    def generatePlotVolumeData(self):
         z_step = np.median(self.dz) * self.z_reduction
         vx, vy, vz = np.arange(0, np.max(self.x) + 1), np.arange(
             0, np.max(self.y) + 1), np.arange(np.min(self.z), np.max(self.z), z_step)
@@ -95,8 +110,8 @@ class VolumeRender(HasTraits):
 
         mlab.clf(figure=self.volume_scene.mayavi_scene)
         valueLimit = max(abs(np.min(scalars)), np.max(scalars))
-        self.slicer = mlab.volume_slice(scalars, figure=self.volume_scene.mayavi_scene, colormap="coolwarm", plane_orientation="z_axes", vmin=-valueLimit, vmax=valueLimit, extent=[np.min(self.x), np.max(self.x), np.min(self.y), np.max(self.y), 0, np.size(vz)])
-        # self.points = mlab.points3d(scalars, figure=self.volume_scene.mayavi_scene, colormap="coolwarm", vmin=np.min(self.s), vmax=np.max(self.s))
+        self.slicer = mlab.volume_slice(scalars, figure=self.volume_scene.mayavi_scene, colormap="seismic", plane_orientation="z_axes", vmin=-valueLimit, vmax=valueLimit, extent=[np.min(self.x), np.max(self.x), np.min(self.y), np.max(self.y), 0, np.size(vz)])
+        self.slicer.module_manager.scalar_lut_manager.lut.table[128] = (255.0, 255.0, 245.0, 255.0)
 
 
 if __name__ == "__main__":
@@ -121,7 +136,8 @@ if __name__ == "__main__":
                 Item('volume_scene',
                      editor=SceneEditor(),
                      height=resolution[1] - 300,
-                     width=resolution[0] / 2 - 100, show_label=False),
+                     width=resolution[0] / 2 - 100,
+                     show_label=False),
                 'reset_plane_butt',
                 show_labels=False,
             ),
