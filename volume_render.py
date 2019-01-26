@@ -64,10 +64,12 @@ class VolumeRender(HasTraits):
         self.volume_scene.camera.clipping_range = [712.7852412300919, 1723.7390002418533]
         self.volume_scene.camera.compute_view_plane_normal()
         self.volume_scene.render()
+        mlab.sync_camera(self.volume_scene, self.scatter_scene)
 
     @on_trait_change('z_reduction')
     def z_reduction_changed(self):
         self.generatePlotVolumeData()
+        self.updateScatterData()
 
     def loadData(self, path):
         data = np.load(path)
@@ -83,11 +85,13 @@ class VolumeRender(HasTraits):
 
     def generatePlotScatterData(self):
         mlab.clf(figure=self.scatter_scene.mayavi_scene)
-        self.points = mlab.points3d(self.x, self.y, self.z * len(self.z) / self.z_reduction, mode="point", figure=self.scatter_scene.mayavi_scene, colormap="seismic", vmin=np.min(self.s), vmax=np.max(self.s))
+        self.points = mlab.points3d(self.x, self.y, self.__scale_z_data(), self.s, mode="point", figure=self.scatter_scene.mayavi_scene, colormap="seismic", vmin=np.min(self.s), vmax=np.max(self.s))
+
+    def __scale_z_data(self):
+        return self.z * len(self.z) / self.z_reduction * 10
 
     def updateScatterData(self):
-        # self.points.update_traits
-        pass
+        self.points.mlab_source.z = self.__scale_z_data()
 
     def generatePlotVolumeData(self):
         z_step = np.median(self.dz) * self.z_reduction
